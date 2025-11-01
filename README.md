@@ -9,6 +9,7 @@ Tidak menyimpan file. Multi provider dengan **bawa API key sendiri**.
 - Pilih provider: OpenRouter, Together, atau Hugging Face Inference.
 - API route `/api/generate` yang menyatukan panggilan ke tiap provider.
 - API route `/api/freepik` untuk proxy pencarian aset ke Freepik (butuh API key).
+- Panel referensi Freepik di UI akan otomatis menampilkan gambar dari pencarian berdasarkan nama file produk pertama.
 - Siap deploy ke Vercel/Node server.
 
 ## Quick start
@@ -19,7 +20,7 @@ Tidak menyimpan file. Multi provider dengan **bawa API key sendiri**.
 
 ## Catatan
 - Beberapa provider menyediakan kredit gratis terbatas atau paket gratis. Kebijakan dapat berubah. Gunakan key Anda sendiri.
-- Project ini hanya menghasilkan teks prompt UGC. Untuk menghasilkan gambar, sambungkan sendiri ke API image seperti Replicate/Fal/Stable Diffusion di route terpisah.
+- Project ini menghasilkan teks prompt UGC dan (opsional) menampilkan referensi gambar dari Freepik. Untuk membuat gambar baru, sambungkan sendiri ke API image seperti Replicate/Fal/Stable Diffusion di route terpisah.
 - Untuk pencarian aset referensi, siapkan `FREEPIK_API_KEY` dan panggil `/api/freepik?q=kata+kunci` (opsional: `page`, `limit`, `sort`, `type`, `orientation`).
 
 ## Route
