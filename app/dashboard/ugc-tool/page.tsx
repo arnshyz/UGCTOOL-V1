@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import Uploader from '@/components/Uploader'
 import PromptStyleSelect from '@/components/PromptStyleSelect'
+import FreepikResults from '@/components/FreepikResults'
 
 export default function Page() {
   const [productCaptions, setProductCaptions] = useState<string[]>([])
@@ -11,6 +12,10 @@ export default function Page() {
   const [count, setCount] = useState(8)
   const [loading, setLoading] = useState(false)
   const [output, setOutput] = useState('')
+  const [freepikQuery, setFreepikQuery] = useState<string | null>(null)
+  const [freepikLoading, setFreepikLoading] = useState(false)
+  const [freepikItems, setFreepikItems] = useState<any[]>([])
+  const [freepikError, setFreepikError] = useState<string | null>(null)
 
   function readAsCaption(files: File[], setter: (s: string[]) => void) {
     // For demo we only keep the filenames as "captions"
@@ -21,28 +26,78 @@ export default function Page() {
   async function generate() {
     setLoading(true)
     setOutput('')
-    const res = await fetch('/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json' },
-      body: JSON.stringify({
-        provider, style, productCaptions, modelCaption: modelCaption || undefined, count
+    setFreepikItems([])
+    setFreepikError(null)
+    const keyword = productCaptions[0]?.trim()
+    if (keyword) {
+      setFreepikQuery(keyword)
+      setFreepikLoading(true)
+    } else {
+      setFreepikQuery(null)
+      setFreepikLoading(false)
+    }
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({
+          provider, style, productCaptions, modelCaption: modelCaption || undefined, count
+        })
       })
-    })
-    const j = await res.json()
-    setLoading(false)
-    if (!j.ok) { setOutput('Error: ' + j.error); return }
-    setOutput(j.text)
+      const j = await res.json()
+      if (!j.ok) {
+        throw new Error(j.error || 'Gagal menghasilkan ide UGC')
+      }
+      setOutput(j.text)
+    } catch (err: any) {
+      const message = err?.message || 'Unknown error'
+      setOutput('Error: ' + message)
+    } finally {
+      setLoading(false)
+    }
+
+    if (!keyword) {
+      return
+    }
+
+    try {
+      const freepikRes = await fetch(`/api/freepik?q=${encodeURIComponent(keyword)}&limit=12`)
+      const freepikJson = await freepikRes.json()
+      if (!freepikJson.ok) {
+        throw new Error(freepikJson.error || 'Gagal memuat hasil Freepik')
+      }
+      const payload = freepikJson.data
+      const items = Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload?.items)
+          ? payload.items
+          : Array.isArray(payload?.resources)
+            ? payload.resources
+            : []
+      setFreepikItems(items)
+    } catch (err: any) {
+      const message = err?.message || 'Tidak dapat memuat hasil Freepik'
+      setFreepikError(message)
+    } finally {
+      setFreepikLoading(false)
+    }
   }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      <div className="lg:col-span-9">
+      <div className="lg:col-span-9 space-y-4">
         <div className="card p-6 min-h-[240px] flex items-center justify-center text-gray-400">
-          {output ? 
+          {output ?
             <pre className="whitespace-pre-wrap text-sm w-full">{output}</pre> :
             <p className="text-sm">Belum ada output. Upload gambar produk dan klik Generate.</p>
           }
         </div>
+        <FreepikResults
+          query={freepikQuery}
+          loading={freepikLoading}
+          error={freepikError}
+          items={freepikItems}
+        />
       </div>
       <div className="lg:col-span-3 space-y-4">
         <div className="text-sm text-gray-500">Upload & Settings</div>
